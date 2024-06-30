@@ -1,46 +1,45 @@
----
-version: '3'
+# https://dev.to/emtiajium/track-every-postgresql-data-change-using-debezium-5e19
+
+version: "3.7"
 services:
-  postgres:
-    image: debezium/postgres
-    hostname: postgres
-    container_name: postgres
-    ports: 
-      - "5432:5432"
-    environment:
-      ACCEPT_EULA: Y
-      POSTGRES_USER: kafkasandbox
-      POSTGRES_PASSWORD: kafkasandboxpass
-      POSTGRES_DB: kafkasandboxdb
-    volumes:
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-  zookeeper:
-    image: debezium/zookeeper
+  vas-kafka:
+    image: bitnami/kafka:3.4
+    container_name: vas-kafka
+    hostname: vas-kafka
+    restart: always
     ports:
-     - 2181:2181
-     - 2888:2888
-     - 3888:3888
-    container_name: zookeeper
-  kafka:
-    image: debezium/kafka
-    ports:
-     - 9092:9092
-    links:
-     - zookeeper
+      - "9092:9092"
     environment:
-      ZOOKEEPER_CONNECT: "zookeeper:2181"
-    container_name: kafka
-  connect:
-    build:
-      context: debezium-jdbc
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_KRAFT_CLUSTER_ID: q0k00yjQRaqWmAAAZv955w # base64 UUID
+      KAFKA_CFG_PROCESS_ROLES: controller,broker
+      KAFKA_CFG_LISTENERS: INTERNAL://vas-kafka:29092,CONTROLLER://vas-kafka:29093,EXTERNAL://0.0.0.0:9092
+      KAFKA_CFG_ADVERTISED_LISTENERS: INTERNAL://vas-kafka:29092,EXTERNAL://vas-kafka:9092
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@vas-kafka:29093
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+    networks:
+      - vas-network
+  vas-connect:
+    image: debezium/connect:2.3
+    container_name: vas-connect
+    hostname: vas-connect
+    restart: always
     ports:
-     - 8083:8083
-    links:
-     - kafka
-     - postgres
+      - "8083:8083"
     environment:
-      BOOTSTRAP_SERVERS: "kafka:9092"
+      BOOTSTRAP_SERVERS: vas-kafka:29092
       GROUP_ID: 1
-      CONFIG_STORAGE_TOPIC: "my_connect_configs"
-      OFFSET_STORAGE_TOPIC: "my_connect_offsets"
-      TOPIC_CREATION_ENABLE: 'true'
+      CONFIG_STORAGE_TOPIC: my_connect_configs
+      OFFSET_STORAGE_TOPIC: my_connect_offsets
+      STATUS_STORAGE_TOPIC: my_connect_statuses
+      ENABLE_DEBEZIUM_SCRIPTING: "true"
+    links:
+      - vas-kafka
+    networks:
+      - vas-network
+networks:
+  vas-network:
+    name: vas-network
+    driver: bridge

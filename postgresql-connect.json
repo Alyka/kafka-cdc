@@ -1,13 +1,19 @@
-  {
-    "name": "src-table",
-    "config": {
-        "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
-        "database.hostname": "postgres",
-        "database.port": "5432",
-        "database.user": "kafkasandbox",
-        "database.password": "kafkasandboxpass",
-        "database.dbname": "kafkasandboxdb",
-        "database.server.name": "postgres",
-        "table.include.list": "public.data"
-    }
+{
+  "name": "vas-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "database.hostname": "host.docker.internal",
+    "database.port": "5432",
+    "database.user": "postgres",
+    "database.password": "Info1@itex",
+    "database.dbname": "vas",
+    "database.server.id": "184054",
+    "plugin.name": "pgoutput",
+    "topic.prefix": "vas-topic",
+    "decimal.handling.mode": "string",
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "false",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "false"
   }
+}
